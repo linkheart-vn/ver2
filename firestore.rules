@@ -106,15 +106,16 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if (isOwner(userId) || isAdmin()) && isValidId(userId);
-      allow list: if isAdmin(); // Only admins can list all users
+      allow list: if isAdmin(); // Root users list is admin only
       
+      // Allow creation even if not verified yet to avoid onboarding blockers
       allow create: if isOwner(userId) && isValidUserProfile(incoming(), userId) && isValidId(userId);
       
       allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) &&
                     isValidUserProfile(incoming(), userId) && (
                       isAdmin() || 
-                      // Owner can only update limited fields
-                      (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'preferredMode', 'pin', 'failedAttempts', 'lockoutUntil', 'walletBalance', 'totalTrips']))
+                      // Owner can update fields, including those used in onboarding/management
+                      (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'preferredMode', 'pin', 'failedAttempts', 'lockoutUntil', 'walletBalance', 'totalTrips', 'cards', 'activePlanId', 'trialEnd']))
                     );
 
       // Sub-collections owner-only
@@ -122,7 +123,8 @@ service cloud.firestore {
         allow read: if (isOwner(userId) || isAdmin()) && isValidId(userId);
         allow create: if isOwner(userId) && isValidKidRequest(incoming()) && isValidId(userId) && isValidId(requestId);
         allow update: if (isOwner(userId) || isAdmin()) && isValidKidRequest(incoming()) && isValidId(userId) && isValidId(requestId) && (
-          incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+          // Allow approving requests with price/timestamp
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'finalPrice', 'approvedAt'])
         );
         allow delete: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidId(requestId);
       }
@@ -144,7 +146,6 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow read: if isOwner(userId) || isAdmin();
-        // Transactions usually system-driven or strictly controlled
         allow create: if isOwner(userId) && incoming().amount is number;
       }
 
@@ -159,8 +160,8 @@ service cloud.firestore {
       }
 
       match /reviews/{reviewId} {
-        allow read: if isSignedIn(); // Allow all signed in users to read reviews
-        allow create: if isSignedIn(); // External users write reviews
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
       }
 
       match /logs/{logId} {
@@ -171,19 +172,19 @@ service cloud.firestore {
 
     match /helpRequests/{requestId} {
       allow get: if isSignedIn() && isValidId(requestId);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // Public listing
       
       allow create: if isSignedIn() && isValidHelpRequestCreate(incoming()) && isValidId(requestId);
       
       allow update: if isSignedIn() && isValidId(requestId) && (
         isAdmin() ||
-        // Action: Owner updates own request
+        // Action: Owner updates own request (including status/metadata)
         (isOwner(existing().userId) && isValidHelpRequestUpdate(incoming(), existing()) && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['service', 'location', 'time', 'phoneNumber', 'status', 'price', 'description', 'coords'])) ||
+         incoming().diff(existing()).affectedKeys().hasOnly(['service', 'location', 'time', 'phoneNumber', 'status', 'price', 'description', 'coords', 'updatedAt'])) ||
         // Action: Helper accepts request
         (existing().status == 'open' && incoming().status == 'matched' &&
          isString(incoming().matchedWithId) && isString(incoming().matchedWithName) &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'matchedWithId', 'matchedWithName']))
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'matchedWithId', 'matchedWithName', 'updatedAt']))
       );
       
       allow delete: if (isOwner(existing().userId) || isAdmin()) && isValidId(requestId);

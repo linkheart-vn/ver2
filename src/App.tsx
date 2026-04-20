@@ -106,14 +106,16 @@ declare const process: any;
 
 const getApiKey = (index?: number) => {
   // Use a fallback-safe check for environment variables
-  // We use window.process to be extremely safe, which is shimmed in index.html and main.tsx
+  // AI Studio automatically provides GEMINI_API_KEY in process.env
+  if (index === undefined) return (process.env.GEMINI_API_KEY || "").trim();
+  
+  // Secondary keys from VITE_ for redundancy
   const env = (window as any).process?.env || {};
-  if (index === undefined) return (env.VITE_GEMINI_API_KEY || "").trim();
-  if (index === 1) return (env.VITE_GEMINI_API_KEY_1 || "").trim();
-  if (index === 2) return (env.VITE_GEMINI_API_KEY_2 || "").trim();
-  if (index === 3) return (env.VITE_GEMINI_API_KEY_3 || "").trim();
-  if (index === 4) return (env.VITE_GEMINI_API_KEY_4 || "").trim();
-  if (index === 5) return (env.VITE_GEMINI_API_KEY_5 || "").trim();
+  if (index === 1) return (env.VITE_GEMINI_API_KEY_1 || env.GEMINI_API_KEY_1 || "").trim();
+  if (index === 2) return (env.VITE_GEMINI_API_KEY_2 || env.GEMINI_API_KEY_2 || "").trim();
+  if (index === 3) return (env.VITE_GEMINI_API_KEY_3 || env.GEMINI_API_KEY_3 || "").trim();
+  if (index === 4) return (env.VITE_GEMINI_API_KEY_4 || env.GEMINI_API_KEY_4 || "").trim();
+  if (index === 5) return (env.VITE_GEMINI_API_KEY_5 || env.GEMINI_API_KEY_5 || "").trim();
   return "";
 };
 
@@ -269,7 +271,7 @@ const getLinkyAIResponse = async (userPrompt: string, systemContext: string) => 
 
     try {
       const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-      const modelName = "gemini-1.5-flash"; 
+      const modelName = "gemini-3-flash-preview"; 
       
       const response = await ai.models.generateContent({
         model: modelName, 
@@ -2979,23 +2981,27 @@ const ProMode = ({
   useEffect(() => {
     const seedMockHelp = async () => {
       const helpRef = collection(db, 'helpRequests');
-      const snap = await getDocs(helpRef);
-      if (snap.empty) {
-        const mockRequests = [
-          { userName: 'Bà Năm', service: 'Đi chợ giúp', location: 'Chung cư EcoHome', time: '10:00 AM', phoneNumber: '0901234567', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Chị Mai', service: 'Trông trẻ 2h', location: 'Phố Cổ', time: '02:00 PM', phoneNumber: '0912345678', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Ông Tư', service: 'Sửa vòi nước', location: 'Quận 7', time: '04:00 PM', phoneNumber: '0923456789', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Anh Tuấn', service: 'Dắt chó đi dạo', location: 'Linh Đàm', time: '05:00 PM', phoneNumber: '0934567890', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Bà Hoa', service: 'Đọc báo cho nghe', location: 'Cầu Giấy', time: '09:00 AM', phoneNumber: '0945678901', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Cô Diệp', service: 'Tưới cây giúp', location: 'Royal City', time: '11:00 AM', phoneNumber: '0956789012', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Bác Hùng', service: 'Tải app điện thoại', location: 'Hồ Tây', time: '03:00 PM', phoneNumber: '0967890123', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Chị Lan', service: 'Mua thuốc giúp', location: 'Trương Định', time: '08:00 AM', phoneNumber: '0978901234', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Anh Bình', service: 'Vận chuyển đồ', location: 'Thanh Xuân', time: '01:00 PM', phoneNumber: '0989012345', status: 'open', createdAt: serverTimestamp() },
-          { userName: 'Em Bé Ngọt', service: 'Lấy hộ bưu kiện', location: 'Time City', time: '10:30 AM', phoneNumber: '0990123456', status: 'open', createdAt: serverTimestamp() }
-        ];
-        for (const req of mockRequests) {
-          await addDoc(helpRef, { ...req, userId: 'mock-user-' + Math.random().toString(36).substr(2, 9) });
+      try {
+        const snap = await getDocs(helpRef);
+        if (snap.empty) {
+          const mockRequests = [
+            { userName: 'Bà Năm', service: 'Đi chợ giúp', location: 'Chung cư EcoHome', time: '10:00 AM', phoneNumber: '0901234567', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Chị Mai', service: 'Trông trẻ 2h', location: 'Phố Cổ', time: '02:00 PM', phoneNumber: '0912345678', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Ông Tư', service: 'Sửa vòi nước', location: 'Quận 7', time: '04:00 PM', phoneNumber: '0923456789', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Anh Tuấn', service: 'Dắt chó đi dạo', location: 'Linh Đàm', time: '05:00 PM', phoneNumber: '0934567890', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Bà Hoa', service: 'Đọc báo cho nghe', location: 'Cầu Giấy', time: '09:00 AM', phoneNumber: '0945678901', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Cô Diệp', service: 'Tưới cây giúp', location: 'Royal City', time: '11:00 AM', phoneNumber: '0956789012', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Bác Hùng', service: 'Tải app điện thoại', location: 'Hồ Tây', time: '03:00 PM', phoneNumber: '0967890123', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Chị Lan', service: 'Mua thuốc giúp', location: 'Trương Định', time: '08:00 AM', phoneNumber: '0978901234', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Anh Bình', service: 'Vận chuyển đồ', location: 'Thanh Xuân', time: '01:00 PM', phoneNumber: '0989012345', status: 'open', createdAt: serverTimestamp() },
+            { userName: 'Em Bé Ngọt', service: 'Lấy hộ bưu kiện', location: 'Time City', time: '10:30 AM', phoneNumber: '0990123456', status: 'open', createdAt: serverTimestamp() }
+          ];
+          for (const req of mockRequests) {
+            await addDoc(helpRef, { ...req, userId: 'mock-user-' + Math.random().toString(36).substr(2, 9) });
+          }
         }
+      } catch (error) {
+        console.warn("Seeding help requests skipped or failed:", error);
       }
     };
     seedMockHelp();
