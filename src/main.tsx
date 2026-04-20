@@ -21,10 +21,20 @@ if (isProd) {
   };
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-);
+try {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+} catch (error) {
+  console.error("Linky Mount Error:", error);
+  const root = document.getElementById('root');
+  if (root) {
+    root.innerHTML = '<div style="padding:40px;color:red;font-family:sans-serif;text-align:center;">' +
+                     '<h2>Application failed to mount.</h2>' +
+                     '<p>' + (error instanceof Error ? error.message : String(error)) + '</p></div>';
+  }
+}
